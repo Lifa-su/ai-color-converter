@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Color Converter - HEX RGB HSL CMYK</title>
+<meta name="description" content="Convert colors between HEX, RGB, HSL, and CMYK formats. Find color names, explore color harmonies.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f13;--surface:#1a1a24;--surface2:#24243a;--border:#2e2e4a;--text:#e8e8f0;--text2:#9898b0;--accent:#6c5ce7;--accent2:#a29bfe;--radius:12px;--shadow:0 4px 24px rgba(0,0,0,.4)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+h1{text-align:center;font-size:2rem;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,var(--accent),var(--accent2),#fd79a8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{text-align:center;color:var(--text2);margin-bottom:32px;font-size:.95rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow)}
+.card h2{font-size:1.15rem;margin-bottom:16px;color:var(--accent2)}
+.preview-section{display:flex;gap:24px;align-items:stretch;flex-wrap:wrap}
+.color-preview{width:180px;min-height:180px;border-radius:var(--radius);border:2px solid var(--border);flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.color-preview .label{background:rgba(0,0,0,.55);color:#fff;padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:600;backdrop-filter:blur(4px)}
+.input-area{flex:1;min-width:260px}
+.picker-row{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.picker-row input[type=color]{width:52px;height:42px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;padding:2px}
+.picker-row input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
+.picker-row input[type=color]::-webkit-color-swatch{border-radius:4px;border:none}
+.universal-input{flex:1;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;outline:none;transition:border-color .2s}
+.universal-input:focus{border-color:var(--accent)}
+.universal-input::placeholder{color:var(--text2)}
+.format-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.format-grid{grid-template-columns:1fr}.preview-section{flex-direction:column;align-items:center}.color-preview{width:100%;min-height:120px}}
+.format-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.format-box label{display:block;font-size:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.format-box .value{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:.95rem;color:var(--text);cursor:pointer;padding:6px 10px;background:var(--bg);border-radius:6px;display:block;transition:background .2s;word-break:break-all}
+.format-box .value:hover{background:var(--border)}
+.format-box .value.copied{background:#2d6a4f;color:#b7e4c7}
+.color-name-box{margin-top:16px;padding:14px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;gap:12px}
+.color-name-swatch{width:36px;height:36px;border-radius:6px;border:1px solid var(--border);flex-shrink:0}
+.color-name-info .name{font-weight:600;font-size:1rem}
+.color-name-info .detail{font-size:.8rem;color:var(--text2)}
+.harmony-section{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.harmony-section{grid-template-columns:1fr}}
+.harmony-group h3{font-size:.9rem;color:var(--text2);margin-bottom:10px}
+.harmony-swatches{display:flex;gap:6px;flex-wrap:wrap}
+.harmony-swatch{width:52px;height:52px;border-radius:8px;border:2px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+.harmony-swatch:hover{transform:scale(1.12);box-shadow:0 4px 16px rgba(0,0,0,.5);z-index:1}
+.harmony-swatch .tip{display:none;position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);background:var(--bg);color:var(--text);padding:2px 8px;border-radius:4px;font-size:.7rem;white-space:nowrap;border:1px solid var(--border);z-index:2}
+.harmony-swatch:hover .tip{display:block}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:#fff;padding:10px 24px;border-radius:8px;font-size:.9rem;opacity:0;transition:all .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;color:var(--text2);font-size:.8rem;margin-top:32px;padding-bottom:24px}
+footer a{color:var(--accent2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎨 AI Color Converter</h1>
+  <p class="subtitle">Convert between HEX, RGB, HSL &amp; CMYK · Find color names · Explore harmonies</p>
+  <div class="card">
+    <h2>Color Input</h2>
+    <div class="preview-section">
+      <div class="color-preview" id="preview"><span class="label" id="previewLabel">#6C5CE7</span></div>
+      <div class="input-area">
+        <div class="picker-row">
+          <input type="color" id="picker" value="#6c5ce7" aria-label="Color picker">
+          <input type="text" class="universal-input" id="colorInput" placeholder="Enter HEX, RGB, HSL, CMYK or color name..." aria-label="Color input">
+        </div>
+        <div class="format-grid">
+          <div class="format-box"><label>HEX</label><span class="value" id="hexVal" role="button" tabindex="0">#6C5CE7</span></div>
+          <div class="format-box"><label>RGB</label><span class="value" id="rgbVal" role="button" tabindex="0">rgb(108, 92, 231)</span></div>
+          <div class="format-box"><label>HSL</label><span class="value" id="hslVal" role="button" tabindex="0">hsl(247, 75%, 63%)</span></div>
+          <div class="format-box"><label>CMYK</label><span class="value" id="cmykVal" role="button" tabindex="0">cmyk(53%, 60%, 0%, 9%)</span></div>
+        </div>
+        <div class="color-name-box">
+          <div class="color-name-swatch" id="nameSwatch"></div>
+          <div class="color-name-info"><div class="name" id="colorName">SlateBlue</div><div class="detail" id="colorNameDetail">Closest CSS color · #6A5ACD</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Color Harmonies</h2>
+    <div class="harmony-section">
+      <div class="harmony-group"><h3>Complementary</h3><div class="harmony-swatches" id="harmComp"></div></div>
+      <div class="harmony-group"><h3>Analogous</h3><div class="harmony-swatches" id="harmAnal"></div></div>
+      <div class="harmony-group"><h3>Triadic</h3><div class="harmony-swatches" id="harmTriad"></div></div>
+      <div class="harmony-group"><h3>Split Complementary</h3><div class="harmony-swatches" id="harmSplit"></div></div>
+    </div>
+  </div>
+  <footer>AI Color Converter · Click any value to copy</footer>
+</div>
+<div class="toast" id="toast">Copied!</div>
+<script>
+const CSS_COLORS={"aliceblue":[240,248,255],"antiquewhite":[250,235,215],"aqua":[0,255,255],"aquamarine":[127,255,212],"azure":[240,255,255],"beige":[245,245,220],"bisque":[255,228,196],"black":[0,0,0],"blanchedalmond":[255,235,205],"blue":[0,0,255],"blueviolet":[138,43,226],"brown":[165,42,42],"burlywood":[222,184,135],"cadetblue":[95,158,160],"chartreuse":[127,255,0],"chocolate":[210,105,30],"coral":[255,127,80],"cornflowerblue":[100,149,237],"cornsilk":[255,248,220],"crimson":[220,20,60],"cyan":[0,255,255],"darkblue":[0,0,139],"darkcyan":[0,139,139],"darkgoldenrod":[184,134,11],"darkgray":[169,169,169],"darkgreen":[0,100,0],"darkkhaki":[189,183,107],"darkmagenta":[139,0,139],"darkolivegreen":[85,107,47],"darkorange":[255,140,0],"darkorchid":[153,50,204],"darkred":[139,0,0],"darksalmon":[233,150,122],"darkseagreen":[143,188,143],"darkslateblue":[72,61,139],"darkslategray":[47,79,79],"darkturquoise":[0,206,209],"darkviolet":[148,0,211],"deeppink":[255,20,147],"deepskyblue":[0,191,255],"dimgray":[105,105,105],"dodgerblue":[30,144,255],"firebrick":[178,34,34],"floralwhite":[255,250,240],"forestgreen":[34,139,34],"fuchsia":[255,0,255],"gainsboro":[220,220,220],"ghostwhite":[248,248,255],"gold":[255,215,0],"goldenrod":[218,165,32],"gray":[128,128,128],"green":[0,128,0],"greenyellow":[173,255,47],"honeydew":[240,255,240],"hotpink":[255,105,180],"indianred":[205,92,92],"indigo":[75,0,130],"ivory":[255,255,240],"khaki":[240,230,140],"lavender":[230,230,250],"lavenderblush":[255,240,245],"lawngreen":[124,252,0],"lemonchiffon":[255,250,205],"lightblue":[173,216,230],"lightcoral":[240,128,128],"lightcyan":[224,255,255],"lightgoldenrodyellow":[250,250,210],"lightgray":[211,211,211],"lightgreen":[144,238,144],"lightpink":[255,182,193],"lightsalmon":[255,160,122],"lightseagreen":[32,178,170],"lightskyblue":[135,206,250],"lightslategray":[119,136,153],"lightsteelblue":[176,196,222],"lightyellow":[255,255,224],"lime":[0,255,0],"limegreen":[50,205,50],"linen":[250,240,230],"magenta":[255,0,255],"maroon":[128,0,0],"mediumaquamarine":[102,205,170],"mediumblue":[0,0,205],"mediumorchid":[186,85,211],"mediumpurple":[147,112,219],"mediumseagreen":[60,179,113],"mediumslateblue":[123,104,238],"mediumspringgreen":[0,250,154],"mediumturquoise":[72,209,204],"mediumvioletred":[199,21,133],"midnightblue":[25,25,112],"mintcream":[245,255,250],"mistyrose":[255,228,225],"moccasin":[255,228,181],"navajowhite":[255,222,173],"navy":[0,0,128],"oldlace":[253,245,230],"olive":[128,128,0],"olivedrab":[107,142,35],"orange":[255,165,0],"orangered":[255,69,0],"orchid":[218,112,214],"palegoldenrod":[238,232,170],"palegreen":[152,251,152],"paleturquoise":[175,238,238],"palevioletred":[219,112,147],"papayawhip":[255,239,213],"peachpuff":[255,218,185],"peru":[205,133,63],"pink":[255,192,203],"plum":[221,160,221],"powderblue":[176,224,230],"purple":[128,0,128],"rebeccapurple":[102,51,153],"red":[255,0,0],"rosybrown":[188,143,143],"royalblue":[65,105,225],"saddlebrown":[139,69,19],"salmon":[250,128,114],"sandybrown":[244,164,96],"seagreen":[46,139,87],"seashell":[255,245,238],"sienna":[160,82,45],"silver":[192,192,192],"skyblue":[135,206,235],"slateblue":[106,90,205],"slategray":[112,128,144],"snow":[255,250,250],"springgreen":[0,255,127],"steelblue":[70,130,180],"tan":[210,180,140],"teal":[0,128,128],"thistle":[216,191,216],"tomato":[255,99,71],"turquoise":[64,224,208],"violet":[238,130,238],"wheat":[245,222,179],"white":[255,255,255],"whitesmoke":[245,245,245],"yellow":[255,255,0],"yellowgreen":[154,205,50]};
+
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(x=>{const h=Math.round(x).toString(16);return h.length===1?'0'+h:h}).join('').toUpperCase()}
+function hexToRgb(hex){hex=hex.replace(/^#/,'');if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];const n=parseInt(hex,16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break}}return[Math.round(h*360),Math.round(s*100),Math.round(l*100)]}
+function hslToRgb(h,s,l){h/=360;s/=100;l/=100;let r,g,b;if(s===0){r=g=b=l}else{const hue2rgb=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p};const q=l<0.5?l*(1+s):l+s-l*s;const p=2*l-q;r=hue2rgb(p,q,h+1/3);g=hue2rgb(p,q,h);b=hue2rgb(p,q,h-1/3)}return[Math.round(r*255),Math.round(g*255),Math.round(b*255)]}
+function rgbToCmyk(r,g,b){if(r===0&&g===0&&b===0)return[0,0,0,100];const rr=r/255,gg=g/255,bb=b/255;const k=1-Math.max(rr,gg,bb);const c=(1-rr-k)/(1-k);const m=(1-gg-k)/(1-k);const y=(1-bb-k)/(1-k);return[Math.round(c*100),Math.round(m*100),Math.round(y*100),Math.round(k*100)]}
+function cmykToRgb(c,m,y,k){c/=100;m/=100;y/=100;k/=100;return[Math.round(255*(1-c)*(1-k)),Math.round(255*(1-m)*(1-k)),Math.round(255*(1-y)*(1-k))]}
+
+function findClosestColor(r,g,b){let minDist=Infinity,closest='black';for(const[name,rgb]of Object.entries(CSS_COLORS)){const d=Math.sqrt((r-rgb[0])**2+(g-rgb[1])**2+(b-rgb[2])**2);if(d<minDist){minDist=d;closest=name}}return{name:closest,rgb:CSS_COLORS[closest],distance:minDist}}
+
+function parseColor(input){
+  input=input.trim();
+  const lower=input.toLowerCase();
+  if(CSS_COLORS[lower])return CSS_COLORS[lower];
+  let m;
+  m=input.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if(m)return hexToRgb(m[1]);
+  m=input.match(/^rgba?\(\s*(\d{1,3})\s*[,\s]\s*(\d{1,3})\s*[,\s]\s*(\d{1,3})/i);
+  if(m)return[+m[1],+m[2],+m[3]];
+  m=input.match(/^(\d{1,3})\s*[,\s]\s*(\d{1,3})\s*[,\s]\s*(\d{1,3})$/);
+  if(m)return[+m[1],+m[2],+m[3]];
+  m=input.match(/^hsla?\(\s*(\d{1,3})\s*[,\s]\s*(\d{1,3})%?\s*[,\s]\s*(\d{1,3})%?/i);
+  if(m)return hslToRgb(+m[1],+m[2],+m[3]);
+  m=input.match(/^cmyk\(\s*(\d{1,3})%?\s*[,\s]\s*(\d{1,3})%?\s*[,\s]\s*(\d{1,3})%?\s*[,\s]\s*(\d{1,3})%?/i);
+  if(m)return cmykToRgb(+m[1],+m[2],+m[3],+m[4]);
+  return null;
+}
+
+function getHarmonies(h,s,l){
+  const mk=a=>hslToRgb(((a%360)+360)%360,s,l);
+  return{
+    comp:[mk(h),mk(h+180)],
+    anal:[mk(h-30),mk(h),mk(h+30)],
+    triad:[mk(h),mk(h+120),mk(h+240)],
+    split:[mk(h),mk(h+150),mk(h+210)]
+  };
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500)}
+
+function updateUI(r,g,b,skipInput){
+  const hex=rgbToHex(r,g,b);
+  const[h,s,l]=rgbToHsl(r,g,b);
+  const[c,m,y,k]=rgbToCmyk(r,g,b);
+  document.getElementById('preview').style.background=hex;
+  document.getElementById('previewLabel').textContent=hex;
+  document.getElementById('hexVal').textContent=hex;
+  document.getElementById('rgbVal').textContent='rgb('+r+', '+g+', '+b+')';
+  document.getElementById('hslVal').textContent='hsl('+h+', '+s+'%, '+l+'%)';
+  document.getElementById('cmykVal').textContent='cmyk('+c+'%, '+m+'%, '+y+'%, '+k+'%)';
+  document.getElementById('picker').value=hex.toLowerCase();
+  if(!skipInput)document.getElementById('colorInput').value=hex;
+  const closest=findClosestColor(r,g,b);
+  document.getElementById('nameSwatch').style.background=rgbToHex(...closest.rgb);
+  document.getElementById('colorName').textContent=closest.name.charAt(0).toUpperCase()+closest.name.slice(1);
+  document.getElementById('colorNameDetail').textContent='Closest CSS color · '+rgbToHex(...closest.rgb)+(closest.distance<1?' (exact match)':' · distance: '+closest.distance.toFixed(1));
+  const harmonies=getHarmonies(h,s,l);
+  const renderSwatches=(id,colors)=>{const el=document.getElementById(id);el.innerHTML='';colors.forEach(c=>{const hex2=rgbToHex(...c);const sw=document.createElement('div');sw.className='harmony-swatch';sw.style.background=hex2;sw.innerHTML='<span class="tip">'+hex2+'</span>';sw.onclick=()=>{updateUI(...c);showToast('Color applied: '+hex2)};el.appendChild(sw)})};
+  renderSwatches('harmComp',harmonies.comp);
+  renderSwatches('harmAnal',harmonies.anal);
+  renderSwatches('harmTriad',harmonies.triad);
+  renderSwatches('harmSplit',harmonies.split);
+}
+
+document.getElementById('picker').addEventListener('input',e=>{const rgb=hexToRgb(e.target.value);updateUI(...rgb)});
+document.getElementById('colorInput').addEventListener('input',e=>{const rgb=parseColor(e.target.value);if(rgb)updateUI(rgb[0],rgb[1],rgb[2],true)});
+document.querySelectorAll('.value').forEach(el=>{el.addEventListener('click',()=>{navigator.clipboard.writeText(el.textContent).then(()=>{el.classList.add('copied');showToast('Copied: '+el.textContent);setTimeout(()=>el.classList.remove('copied'),1200)})})});
+updateUI(108,92,231);
+</script>
+<script src="https://alwingulla.com/88/tag.min.js" data-zone="130747" async data-cfasync="false"></script>
+</body>
+</html>
